@@ -1,0 +1,124 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check awg binary exists
+      ansible.builtin.command:
+        cmd: which awg
+      register: awg_binary
+      changed_when: false
+
+    - name: Verify awg binary is available
+      ansible.builtin.assert:
+        that:
+          - awg_binary.rc == 0
+        fail_msg: 'awg binary not found'
+
+    - name: Check awg-quick binary exists
+      ansible.builtin.command:
+        cmd: which awg-quick
+      register: awg_quick_binary
+      changed_when: false
+
+    - name: Verify awg-quick binary is available
+      ansible.builtin.assert:
+        that:
+          - awg_quick_binary.rc == 0
+        fail_msg: 'awg-quick binary not found'
+
+    - name: Check amneziawg-go binary exists
+      ansible.builtin.command:
+        cmd: which amneziawg-go
+      register: amneziawg_go_binary
+      changed_when: false
+
+    - name: Verify amneziawg-go binary is available
+      ansible.builtin.assert:
+        that:
+          - amneziawg_go_binary.rc == 0
+        fail_msg: 'amneziawg-go binary not found'
+
+    - name: Check configuration file exists
+      ansible.builtin.stat:
+        path: /etc/amnezia/amneziawg/awg0.conf
+      register: config_file
+
+    - name: Verify configuration file exists
+      ansible.builtin.assert:
+        that:
+          - config_file.stat.exists
+          - config_file.stat.mode == '0600'
+        fail_msg: 'Configuration file not found or wrong permissions'
+
+    - name: Read configuration file
+      ansible.builtin.slurp:
+        src: /etc/amnezia/amneziawg/awg0.conf
+      register: config_content
+
+    - name: Verify configuration contains Interface section
+      ansible.builtin.assert:
+        that:
+          - "'[Interface]' in (config_content.content | b64decode)"
+          - "'PrivateKey' in (config_content.content | b64decode)"
+          - "'ListenPort = 51820' in (config_content.content | b64decode)"
+        fail_msg: 'Configuration file missing required Interface settings'
+
+    - name: Verify obfuscation parameters in config
+      ansible.builtin.assert:
+        that:
+          - "'Jc = 4' in (config_content.content | b64decode)"
+          - "'Jmin = 40' in (config_content.content | b64decode)"
+          - "'Jmax = 70' in (config_content.content | b64decode)"
+          - "'H1 = 12345678' in (config_content.content | b64decode)"
+        fail_msg: 'Configuration file missing obfuscation parameters'
+
+    - name: Verify peer configuration
+      ansible.builtin.assert:
+        that:
+          - "'[Peer]' in (config_content.content | b64decode)"
+          - "'PublicKey' in (config_content.content | b64decode)"
+        fail_msg: 'Configuration file missing peer configuration'
+
+    - name: Check service file exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/awg-quick@.service
+      register: service_file
+
+    - name: Verify service file exists
+      ansible.builtin.assert:
+        that:
+          - service_file.stat.exists
+        fail_msg: 'awg-quick service file not found'
+
+    - name: Extract PrivateKey from config
+      ansible.builtin.shell: |
+        set -euo pipefail
+        grep -E '^PrivateKey\s*=' /etc/amnezia/amneziawg/awg0.conf | sed 's/^PrivateKey\s*=\s*//' | tr -d ' '
+      args:
+        executable: /bin/bash
+      register: private_key_check
+      changed_when: false
+
+    - name: Verify private key was generated
+      ansible.builtin.assert:
+        that:
+          - private_key_check.stdout | length == 44
+        fail_msg: 'Private key not properly generated (length: {{ private_key_check.stdout | length }})'
+
+    - name: Count peer sections in config (should be 2 for 3-node mesh)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        grep -c '^\[Peer\]' /etc/amnezia/amneziawg/awg0.conf
+      args:
+        executable: /bin/bash
+      register: peer_count
+      changed_when: false
+
+    - name: Verify correct number of peers
+      ansible.builtin.assert:
+        that:
+          - peer_count.stdout | int == 2
+        fail_msg: 'Expected 2 peers in mesh config, found {{ peer_count.stdout }}'

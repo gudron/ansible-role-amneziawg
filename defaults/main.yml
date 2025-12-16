@@ -1,0 +1,69 @@
+---
+# defaults/main.yml - Default variables for amneziawg role
+
+# Installation settings
+amneziawg_install_method: 'package'  # 'package' or 'source'
+amneziawg_state: 'present'
+amneziawg_update_cache: true
+
+# Go settings (only used when amneziawg_install_method: 'source')
+amneziawg_go_version: '1.21.5'
+amneziawg_go_install_dir: '/usr/local'
+
+# Interface settings
+amneziawg_interface: 'awg0'
+amneziawg_port: '51820'
+amneziawg_remote_directory: '/etc/amnezia/amneziawg'
+amneziawg_conf_owner: 'root'
+amneziawg_conf_group: 'root'
+amneziawg_conf_mode: '0600'
+amneziawg_conf_backup: false
+
+# Service settings
+amneziawg_service_enabled: true
+amneziawg_service_state: 'started'
+amneziawg_interface_restart: false  # Set to true to restart instead of syncconf
+
+# Mesh/topology settings
+amneziawg_as_spoke: false  # When true, only connect to hubs (hosts with endpoints)
+
+# Per-host settings (typically set in host_vars)
+# amneziawg_addresses: []           # Required: List of VPN IP addresses with CIDR
+# amneziawg_endpoint: ''            # Public endpoint (empty = client-only/spoke)
+# amneziawg_private_key: ''         # Optional: provide own key, otherwise auto-generated
+# amneziawg_allowed_ips: ''         # Custom AllowedIPs override
+# amneziawg_persistent_keepalive: ''
+# amneziawg_dns: ''
+# amneziawg_mtu: ''
+# amneziawg_fwmark: ''
+# amneziawg_table: ''
+# amneziawg_preup: []
+# amneziawg_postup: []
+# amneziawg_predown: []
+# amneziawg_postdown: []
+
+# AmneziaWG obfuscation parameters (define in group_vars for mesh-wide consistency)
+# Junk packets (sent before handshake for obfuscation)
+amneziawg_jc: 0    # Junk packet count (0 = disabled)
+amneziawg_jmin: 0  # Minimum junk packet size
+amneziawg_jmax: 0  # Maximum junk packet size (must be < MTU)
+
+# Message padding
+amneziawg_s1: 0  # Padding for handshake init message
+amneziawg_s2: 0  # Padding for handshake response message
+
+# Header obfuscation (replace WireGuard's distinctive type field)
+amneziawg_h1: 0  # Header for handshake init (int or 'x-y' range)
+amneziawg_h2: 0  # Header for handshake response
+amneziawg_h3: 0  # Header for cookie message
+amneziawg_h4: 0  # Header for transport messages
+
+# Unmanaged peers (peers not in ansible inventory)
+# amneziawg_unmanaged_peers:
+#   client.example.com:
+#     public_key: 'xxxx'
+#     allowed_ips: '10.0.0.100/32'
+#     endpoint: 'client.example.com:51820'
+#     persistent_keepalive: '30'
+#     preshared_key: ''  # Optional
+amneziawg_unmanaged_peers: {}

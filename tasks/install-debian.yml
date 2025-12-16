@@ -1,0 +1,50 @@
+---
+# tasks/install-debian.yml - Install AmneziaWG on Debian/Ubuntu
+
+- name: Install dependencies for package method
+  when: amneziawg_install_method == 'package'
+  block:
+    - name: Install apt-transport-https and gpg
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - gpg
+        state: present
+        update_cache: '{{ amneziawg_update_cache }}'
+      become: true
+
+    - name: Add AmneziaWG PPA signing key
+      ansible.builtin.apt_key:
+        url: 'https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu/dists/{{ ansible_distribution_release }}/Release.gpg'
+        state: present
+      become: true
+      ignore_errors: true
+      register: amneziawg__apt_key_result
+
+    - name: Add AmneziaWG PPA repository
+      ansible.builtin.apt_repository:
+        repo: 'ppa:amnezia/ppa'
+        state: present
+        filename: amneziawg
+      become: true
+      when: amneziawg__apt_key_result is succeeded
+
+    - name: Install AmneziaWG packages
+      ansible.builtin.apt:
+        name:
+          - amneziawg
+          - amneziawg-tools
+        state: '{{ amneziawg_state }}'
+        update_cache: true
+      become: true
+      when: amneziawg__apt_key_result is succeeded
+
+    - name: Install AmneziaWG from source when PPA not available
+      when: amneziawg__apt_key_result is failed
+      ansible.builtin.include_tasks:
+        file: install-source.yml
+
+- name: Install from source
+  when: amneziawg_install_method == 'source'
+  ansible.builtin.include_tasks:
+    file: install-source.yml

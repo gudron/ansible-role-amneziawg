@@ -1,0 +1,42 @@
+---
+# tasks/configure.yml - Configure AmneziaWG interface
+
+- name: Create AmneziaWG configuration directory
+  ansible.builtin.file:
+    path: '{{ amneziawg_remote_directory }}'
+    state: directory
+    owner: '{{ amneziawg_conf_owner }}'
+    group: '{{ amneziawg_conf_group }}'
+    mode: '0700'
+  become: true
+
+- name: Deploy AmneziaWG configuration
+  ansible.builtin.template:
+    src: etc/amneziawg/awg.conf.j2
+    dest: '{{ amneziawg_remote_directory }}/{{ amneziawg_interface }}.conf'
+    owner: '{{ amneziawg_conf_owner }}'
+    group: '{{ amneziawg_conf_group }}'
+    mode: '{{ amneziawg_conf_mode }}'
+    backup: '{{ amneziawg_conf_backup }}'
+  become: true
+  notify:
+    - Reconfigure amneziawg
+  tags:
+    - amneziawg
+    - amneziawg-config
+
+- name: Enable AmneziaWG service
+  ansible.builtin.systemd:
+    name: 'awg-quick@{{ amneziawg_interface }}'
+    enabled: '{{ amneziawg_service_enabled }}'
+  become: true
+  tags:
+    - amneziawg
+
+- name: Start AmneziaWG service
+  ansible.builtin.systemd:
+    name: 'awg-quick@{{ amneziawg_interface }}'
+    state: '{{ amneziawg_service_state }}'
+  become: true
+  tags:
+    - amneziawg

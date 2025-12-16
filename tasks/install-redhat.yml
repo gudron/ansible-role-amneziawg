@@ -1,0 +1,39 @@
+---
+# tasks/install-redhat.yml - Install AmneziaWG on RHEL/CentOS/Rocky/Alma
+
+- name: Install dependencies for package method
+  when: amneziawg_install_method == 'package'
+  block:
+    - name: Install EPEL repository
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+      become: true
+      when: ansible_distribution != 'Fedora'
+
+    - name: Add AmneziaWG COPR repository
+      ansible.builtin.command:
+        cmd: dnf copr enable -y amnezia/amneziawg
+        creates: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:amnezia:amneziawg.repo
+      become: true
+      register: amneziawg__copr_result
+      ignore_errors: true
+
+    - name: Install AmneziaWG packages
+      ansible.builtin.dnf:
+        name:
+          - amneziawg-tools
+          - amneziawg-dkms
+        state: '{{ amneziawg_state }}'
+      become: true
+      when: amneziawg__copr_result is succeeded
+
+    - name: Install AmneziaWG from source when COPR not available
+      when: amneziawg__copr_result is failed
+      ansible.builtin.include_tasks:
+        file: install-source-redhat.yml
+
+- name: Install from source
+  when: amneziawg_install_method == 'source'
+  ansible.builtin.include_tasks:
+    file: install-source-redhat.yml

@@ -1,0 +1,61 @@
+---
+# tasks/generate-keys.yml - Generate and manage AmneziaWG keys
+
+- name: Check if config file exists
+  ansible.builtin.stat:
+    path: '{{ amneziawg_remote_directory }}/{{ amneziawg_interface }}.conf'
+  register: amneziawg__config_file
+  become: true
+
+- name: Read existing private key from config
+  when: amneziawg__config_file.stat.exists
+  block:
+    - name: Get private key from existing config
+      ansible.builtin.shell: |
+        set -euo pipefail
+        grep -E '^PrivateKey\s*=' {{ amneziawg_remote_directory }}/{{ amneziawg_interface }}.conf | sed 's/^PrivateKey\s*=\s*//' | tr -d ' '
+      args:
+        executable: /bin/bash
+      register: amneziawg__existing_private_key
+      changed_when: false
+      become: true
+
+    - name: Set private key fact from existing config
+      ansible.builtin.set_fact:
+        amneziawg__fact_private_key: '{{ amneziawg__existing_private_key.stdout }}'
+      when: amneziawg__existing_private_key.stdout | length > 0
+
+- name: Generate new keypair
+  when: >
+    not amneziawg__config_file.stat.exists
+    or (amneziawg__existing_private_key.stdout | default('') | length == 0)
+  block:
+    - name: Use provided private key
+      when: amneziawg_private_key is defined and amneziawg_private_key | length > 0
+      ansible.builtin.set_fact:
+        amneziawg__fact_private_key: '{{ amneziawg_private_key }}'
+
+    - name: Generate new private key
+      when: amneziawg_private_key is not defined or amneziawg_private_key | length == 0
+      ansible.builtin.command:
+        cmd: awg genkey
+      register: amneziawg__generated_private_key
+      changed_when: false
+
+    - name: Set private key fact from generated key
+      when: amneziawg_private_key is not defined or amneziawg_private_key | length == 0
+      ansible.builtin.set_fact:
+        amneziawg__fact_private_key: '{{ amneziawg__generated_private_key.stdout }}'
+
+- name: Derive public key from private key
+  ansible.builtin.shell: |
+    set -euo pipefail
+    echo '{{ amneziawg__fact_private_key }}' | awg pubkey
+  args:
+    executable: /bin/bash
+  register: amneziawg__public_key
+  changed_when: false
+
+- name: Set public key fact for peer sharing
+  ansible.builtin.set_fact:
+    amneziawg__fact_public_key: '{{ amneziawg__public_key.stdout }}'

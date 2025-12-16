@@ -1,0 +1,39 @@
+---
+# tasks/main.yml - Main entry point for amneziawg role
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - amneziawg_addresses is defined
+      - amneziawg_addresses | length > 0
+    fail_msg: 'amneziawg_addresses must be defined with at least one VPN address'
+    quiet: true
+  tags:
+    - amneziawg
+    - amneziawg-config
+
+- name: Include OS-specific installation tasks
+  ansible.builtin.include_tasks:
+    file: '{{ amneziawg__install_tasks }}'
+  vars:
+    amneziawg__install_tasks: >-
+      {{ 'install-debian.yml' if ansible_os_family == 'Debian' else
+         'install-redhat.yml' if ansible_os_family == 'RedHat' else
+         'install-source.yml' }}
+  tags:
+    - amneziawg
+    - amneziawg-install
+
+- name: Generate AmneziaWG keys
+  ansible.builtin.include_tasks:
+    file: generate-keys.yml
+  tags:
+    - amneziawg
+    - amneziawg-keys
+
+- name: Configure AmneziaWG interface
+  ansible.builtin.include_tasks:
+    file: configure.yml
+  tags:
+    - amneziawg
+    - amneziawg-config

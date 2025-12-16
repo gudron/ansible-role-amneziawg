@@ -1,0 +1,89 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+platforms:
+  - name: node1
+    image: geerlingguy/docker-ubuntu2404-ansible
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    networks:
+      - name: amneziawg-mesh
+    docker_networks:
+      - name: amneziawg-mesh
+        ipam_config:
+          - subnet: 172.28.0.0/16
+
+  - name: node2
+    image: geerlingguy/docker-ubuntu2404-ansible
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    networks:
+      - name: amneziawg-mesh
+
+  - name: node3
+    image: geerlingguy/docker-ubuntu2404-ansible
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    networks:
+      - name: amneziawg-mesh
+
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      node1:
+        amneziawg_addresses:
+          - '10.10.0.1/24'
+        amneziawg_endpoint: 'node1'
+      node2:
+        amneziawg_addresses:
+          - '10.10.0.2/24'
+        amneziawg_endpoint: 'node2'
+      node3:
+        amneziawg_addresses:
+          - '10.10.0.3/24'
+        amneziawg_endpoint: 'node3'
+    group_vars:
+      all:
+        amneziawg_install_method: 'source'
+        amneziawg_jc: 4
+        amneziawg_jmin: 40
+        amneziawg_jmax: 70
+        amneziawg_h1: 12345678
+        amneziawg_h2: 12345679
+        amneziawg_h3: 12345680
+        amneziawg_h4: 12345681
+
+verifier:
+  name: ansible
+
+scenario:
+  name: default
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - cleanup
+    - destroy

@@ -1,0 +1,24 @@
+---
+# handlers/main.yml - Handlers for amneziawg role
+
+- name: Reconfigure amneziawg interface
+  when: not amneziawg_interface_restart
+  ansible.builtin.shell: |
+    set -euo pipefail
+    awg syncconf {{ amneziawg_interface }} <(awg-quick strip {{ amneziawg_remote_directory }}/{{ amneziawg_interface }}.conf)
+  args:
+    executable: /bin/bash
+  listen:
+    - Reconfigure amneziawg
+  tags:
+    - amneziawg
+
+- name: Restart amneziawg interface
+  when: amneziawg_interface_restart
+  ansible.builtin.systemd:
+    name: 'awg-quick@{{ amneziawg_interface }}'
+    state: restarted
+  listen:
+    - Reconfigure amneziawg
+  tags:
+    - amneziawg

@@ -1,0 +1,111 @@
+# {{ ansible_managed }}
+# AmneziaWG configuration for {{ inventory_hostname }}
+
+[Interface]
+Address = {{ amneziawg_addresses | join(', ') }}
+ListenPort = {{ amneziawg_port }}
+PrivateKey = {{ amneziawg__fact_private_key }}
+{% if amneziawg_dns is defined and amneziawg_dns %}
+DNS = {{ amneziawg_dns }}
+{% endif %}
+{% if amneziawg_mtu is defined and amneziawg_mtu %}
+MTU = {{ amneziawg_mtu }}
+{% endif %}
+{% if amneziawg_fwmark is defined and amneziawg_fwmark %}
+FwMark = {{ amneziawg_fwmark }}
+{% endif %}
+{% if amneziawg_table is defined and amneziawg_table %}
+Table = {{ amneziawg_table }}
+{% endif %}
+{% if amneziawg_jc | int > 0 %}
+Jc = {{ amneziawg_jc }}
+{% endif %}
+{% if amneziawg_jmin | int > 0 %}
+Jmin = {{ amneziawg_jmin }}
+{% endif %}
+{% if amneziawg_jmax | int > 0 %}
+Jmax = {{ amneziawg_jmax }}
+{% endif %}
+{% if amneziawg_s1 | int > 0 %}
+S1 = {{ amneziawg_s1 }}
+{% endif %}
+{% if amneziawg_s2 | int > 0 %}
+S2 = {{ amneziawg_s2 }}
+{% endif %}
+{% if amneziawg_h1 | int > 0 or (amneziawg_h1 is string and '-' in amneziawg_h1) %}
+H1 = {{ amneziawg_h1 }}
+{% endif %}
+{% if amneziawg_h2 | int > 0 or (amneziawg_h2 is string and '-' in amneziawg_h2) %}
+H2 = {{ amneziawg_h2 }}
+{% endif %}
+{% if amneziawg_h3 | int > 0 or (amneziawg_h3 is string and '-' in amneziawg_h3) %}
+H3 = {{ amneziawg_h3 }}
+{% endif %}
+{% if amneziawg_h4 | int > 0 or (amneziawg_h4 is string and '-' in amneziawg_h4) %}
+H4 = {{ amneziawg_h4 }}
+{% endif %}
+{% if amneziawg_preup is defined and amneziawg_preup %}
+{% for cmd in amneziawg_preup %}
+PreUp = {{ cmd }}
+{% endfor %}
+{% endif %}
+{% if amneziawg_postup is defined and amneziawg_postup %}
+{% for cmd in amneziawg_postup %}
+PostUp = {{ cmd }}
+{% endfor %}
+{% endif %}
+{% if amneziawg_predown is defined and amneziawg_predown %}
+{% for cmd in amneziawg_predown %}
+PreDown = {{ cmd }}
+{% endfor %}
+{% endif %}
+{% if amneziawg_postdown is defined and amneziawg_postdown %}
+{% for cmd in amneziawg_postdown %}
+PostDown = {{ cmd }}
+{% endfor %}
+{% endif %}
+
+{% for host in ansible_play_hosts %}
+{# Skip self #}
+{% if host != inventory_hostname %}
+{# In spoke mode, only connect to hosts with endpoints (hubs) #}
+{% if not amneziawg_as_spoke or (hostvars[host].amneziawg_endpoint is defined and hostvars[host].amneziawg_endpoint) %}
+[Peer]
+# {{ host }}
+PublicKey = {{ hostvars[host].amneziawg__fact_public_key }}
+{% if hostvars[host].amneziawg_preshared_key is defined and hostvars[host].amneziawg_preshared_key %}
+PresharedKey = {{ hostvars[host].amneziawg_preshared_key }}
+{% endif %}
+{% if hostvars[host].amneziawg_allowed_ips is defined and hostvars[host].amneziawg_allowed_ips %}
+AllowedIPs = {{ hostvars[host].amneziawg_allowed_ips }}
+{% else %}
+AllowedIPs = {{ hostvars[host].amneziawg_addresses | map('regex_replace', '/\\d+$', '/32') | join(', ') }}
+{% endif %}
+{% if hostvars[host].amneziawg_endpoint is defined and hostvars[host].amneziawg_endpoint %}
+Endpoint = {{ hostvars[host].amneziawg_endpoint }}:{{ hostvars[host].amneziawg_port | default(amneziawg_port) }}
+{% endif %}
+{% if hostvars[host].amneziawg_persistent_keepalive is defined and hostvars[host].amneziawg_persistent_keepalive %}
+PersistentKeepalive = {{ hostvars[host].amneziawg_persistent_keepalive }}
+{% elif not (hostvars[host].amneziawg_endpoint is defined and hostvars[host].amneziawg_endpoint) %}
+PersistentKeepalive = 25
+{% endif %}
+
+{% endif %}
+{% endif %}
+{% endfor %}
+{% for peer_name, peer in amneziawg_unmanaged_peers.items() %}
+[Peer]
+# {{ peer_name }} (unmanaged)
+PublicKey = {{ peer.public_key }}
+{% if peer.preshared_key is defined and peer.preshared_key %}
+PresharedKey = {{ peer.preshared_key }}
+{% endif %}
+AllowedIPs = {{ peer.allowed_ips }}
+{% if peer.endpoint is defined and peer.endpoint %}
+Endpoint = {{ peer.endpoint }}
+{% endif %}
+{% if peer.persistent_keepalive is defined and peer.persistent_keepalive %}
+PersistentKeepalive = {{ peer.persistent_keepalive }}
+{% endif %}
+
+{% endfor %}

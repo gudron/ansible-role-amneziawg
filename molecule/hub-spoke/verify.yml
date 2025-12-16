@@ -1,0 +1,80 @@
+---
+- name: Verify hub
+  hosts: hub
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check configuration file exists
+      ansible.builtin.stat:
+        path: /etc/amnezia/amneziawg/awg0.conf
+      register: config_file
+
+    - name: Verify configuration file exists
+      ansible.builtin.assert:
+        that:
+          - config_file.stat.exists
+        fail_msg: 'Configuration file not found'
+
+    - name: Read configuration file
+      ansible.builtin.slurp:
+        src: /etc/amnezia/amneziawg/awg0.conf
+      register: config_content
+
+    - name: Count peer sections (hub should have 2 peers - both spokes)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        grep -c '^\[Peer\]' /etc/amnezia/amneziawg/awg0.conf
+      args:
+        executable: /bin/bash
+      register: peer_count
+      changed_when: false
+
+    - name: Verify hub has 2 peers
+      ansible.builtin.assert:
+        that:
+          - peer_count.stdout | int == 2
+        fail_msg: 'Hub should have 2 peers (spokes), found {{ peer_count.stdout }}'
+
+- name: Verify spokes
+  hosts: spoke1:spoke2
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check configuration file exists
+      ansible.builtin.stat:
+        path: /etc/amnezia/amneziawg/awg0.conf
+      register: config_file
+
+    - name: Verify configuration file exists
+      ansible.builtin.assert:
+        that:
+          - config_file.stat.exists
+        fail_msg: 'Configuration file not found'
+
+    - name: Read configuration file
+      ansible.builtin.slurp:
+        src: /etc/amnezia/amneziawg/awg0.conf
+      register: config_content
+
+    - name: Count peer sections (spoke should have 1 peer - hub only)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        grep -c '^\[Peer\]' /etc/amnezia/amneziawg/awg0.conf
+      args:
+        executable: /bin/bash
+      register: peer_count
+      changed_when: false
+
+    - name: Verify spoke has 1 peer (hub only)
+      ansible.builtin.assert:
+        that:
+          - peer_count.stdout | int == 1
+        fail_msg: 'Spoke should have 1 peer (hub), found {{ peer_count.stdout }}'
+
+    - name: Verify spoke config has hub endpoint
+      ansible.builtin.assert:
+        that:
+          - "'Endpoint = hub:51820' in (config_content.content | b64decode)"
+        fail_msg: 'Spoke config missing hub endpoint'

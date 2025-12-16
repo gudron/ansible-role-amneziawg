@@ -1,0 +1,30 @@
+---
+# meta/main.yml - Role metadata
+
+galaxy_info:
+  role_name: 'amneziawg'
+  namespace: 'akme'
+  author: 'akme'
+  description: 'Deploy AmneziaWG mesh VPN networks with DPI obfuscation support'
+  license: 'MIT'
+  min_ansible_version: '2.14'
+
+  platforms:
+    - name: 'Ubuntu'
+      versions:
+        - 'jammy'
+        - 'noble'
+    - name: 'Debian'
+      versions:
+        - 'bookworm'
+        - 'bullseye'
+
+  galaxy_tags:
+    - amneziawg
+    - wireguard
+    - vpn
+    - mesh
+    - networking
+    - security
+
+dependencies: []

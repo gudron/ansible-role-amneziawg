@@ -1,0 +1,143 @@
+---
+# tasks/install-source.yml - Build and install AmneziaWG from source
+
+- name: Install build dependencies
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - git
+      - wget
+    state: present
+    update_cache: '{{ amneziawg_update_cache }}'
+  become: true
+
+- name: Check if Go is installed at expected path
+  ansible.builtin.stat:
+    path: '{{ amneziawg_go_install_dir }}/go/bin/go'
+  register: amneziawg__go_binary_stat
+
+- name: Check installed Go version
+  ansible.builtin.command:
+    cmd: '{{ amneziawg_go_install_dir }}/go/bin/go version'
+  register: amneziawg__go_check
+  changed_when: false
+  failed_when: false
+  when: amneziawg__go_binary_stat.stat.exists
+
+- name: Install Go
+  when: not amneziawg__go_binary_stat.stat.exists or (amneziawg__go_check.stdout is defined and amneziawg_go_version not in amneziawg__go_check.stdout)
+  block:
+    - name: Download Go tarball
+      ansible.builtin.get_url:
+        url: 'https://go.dev/dl/go{{ amneziawg_go_version }}.linux-{{ ansible_facts["architecture"] | regex_replace("x86_64", "amd64") | regex_replace("aarch64", "arm64") }}.tar.gz'
+        dest: '/tmp/go{{ amneziawg_go_version }}.tar.gz'
+        mode: '0644'
+
+    - name: Remove existing Go installation
+      ansible.builtin.file:
+        path: '{{ amneziawg_go_install_dir }}/go'
+        state: absent
+      become: true
+
+    - name: Extract Go tarball
+      ansible.builtin.unarchive:
+        src: '/tmp/go{{ amneziawg_go_version }}.tar.gz'
+        dest: '{{ amneziawg_go_install_dir }}'
+        remote_src: true
+      become: true
+
+- name: Set Go environment path
+  ansible.builtin.set_fact:
+    amneziawg__go_path: '{{ amneziawg_go_install_dir }}/go/bin'
+
+- name: Check if amneziawg-go is installed
+  ansible.builtin.stat:
+    path: /usr/bin/amneziawg-go
+  register: amneziawg__go_binary
+
+- name: Build and install amneziawg-go
+  when: not amneziawg__go_binary.stat.exists
+  block:
+    - name: Clone amneziawg-go repository
+      ansible.builtin.git:
+        repo: 'https://github.com/amnezia-vpn/amneziawg-go.git'
+        dest: /tmp/amneziawg-go
+        depth: 1
+        force: true
+
+    - name: Build amneziawg-go
+      ansible.builtin.command:
+        cmd: make
+        chdir: /tmp/amneziawg-go
+      environment:
+        PATH: '{{ amneziawg__go_path }}:{{ ansible_facts["env"]["PATH"] }}'
+      changed_when: true
+
+    - name: Install amneziawg-go binary
+      ansible.builtin.copy:
+        src: /tmp/amneziawg-go/amneziawg-go
+        dest: /usr/bin/amneziawg-go
+        mode: '0755'
+        remote_src: true
+      become: true
+
+- name: Check if awg tools are installed
+  ansible.builtin.stat:
+    path: /usr/bin/awg
+  register: amneziawg__tools_binary
+
+- name: Build and install amneziawg-tools
+  when: not amneziawg__tools_binary.stat.exists
+  block:
+    - name: Clone amneziawg-tools repository
+      ansible.builtin.git:
+        repo: 'https://github.com/amnezia-vpn/amneziawg-tools.git'
+        dest: /tmp/amneziawg-tools
+        depth: 1
+        force: true
+
+    - name: Build amneziawg-tools
+      ansible.builtin.command:
+        cmd: make -C src
+        chdir: /tmp/amneziawg-tools
+      changed_when: true
+
+    - name: Install amneziawg-tools
+      ansible.builtin.command:
+        cmd: make -C src install
+        chdir: /tmp/amneziawg-tools
+      become: true
+      changed_when: true
+
+- name: Create awg-quick systemd service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/awg-quick@.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=AmneziaWG via awg-quick(8) for %I
+      After=network-online.target nss-lookup.target
+      Wants=network-online.target nss-lookup.target
+      PartOf=awg-quick.target
+      Documentation=man:awg-quick(8)
+      Documentation=man:awg(8)
+      Documentation=https://github.com/amnezia-vpn/amneziawg-tools
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/bin/awg-quick up %i
+      ExecStop=/usr/bin/awg-quick down %i
+      Environment=WG_QUICK_USERSPACE_IMPLEMENTATION=amneziawg-go
+      Environment=WG_ENDPOINT_RESOLUTION_RETRIES=infinity
+
+      [Install]
+      WantedBy=multi-user.target
+  become: true
+  register: amneziawg__systemd_service
+
+- name: Reload systemd daemon
+  when: amneziawg__systemd_service.changed
+  ansible.builtin.systemd:
+    daemon_reload: true
+  become: true

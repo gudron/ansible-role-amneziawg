@@ -1,0 +1,85 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+platforms:
+  - name: hub
+    image: geerlingguy/docker-ubuntu2404-ansible
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    networks:
+      - name: amneziawg-hubspoke
+    docker_networks:
+      - name: amneziawg-hubspoke
+        ipam_config:
+          - subnet: 172.29.0.0/16
+
+  - name: spoke1
+    image: geerlingguy/docker-ubuntu2404-ansible
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    networks:
+      - name: amneziawg-hubspoke
+
+  - name: spoke2
+    image: geerlingguy/docker-ubuntu2404-ansible
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    networks:
+      - name: amneziawg-hubspoke
+
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      hub:
+        amneziawg_addresses:
+          - '10.20.0.1/24'
+        amneziawg_endpoint: 'hub'
+      spoke1:
+        amneziawg_addresses:
+          - '10.20.0.10/24'
+        amneziawg_as_spoke: true
+      spoke2:
+        amneziawg_addresses:
+          - '10.20.0.11/24'
+        amneziawg_as_spoke: true
+    group_vars:
+      all:
+        amneziawg_install_method: 'source'
+        amneziawg_jc: 3
+        amneziawg_jmin: 50
+        amneziawg_jmax: 100
+
+verifier:
+  name: ansible
+
+scenario:
+  name: hub-spoke
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - cleanup
+    - destroy
