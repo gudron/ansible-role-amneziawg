@@ -82,47 +82,46 @@ amneziawg_as_spoke: false  # When true, only connects to hubs (hosts with endpoi
 
 ## Example: 3-Node Mesh Network
 
-### Inventory
-
-```ini
-[amneziawg]
-node1 ansible_host=192.168.1.10
-node2 ansible_host=192.168.1.11
-node3 ansible_host=192.168.1.12
-```
-
-### group_vars/amneziawg.yml
+### Inventory (YAML format)
 
 ```yaml
-# Shared obfuscation settings (must match on all peers)
-amneziawg_jc: 4
-amneziawg_jmin: 40
-amneziawg_jmax: 70
-# H1-H4 should be left at 0 (see Known Limitations below)
-```
+---
+all:
+  hosts:
+    node1:
+      ansible_host: 192.168.1.10
+      ansible_user: root
+      amneziawg_addresses:
+        - '10.10.0.1/24'
+      amneziawg_endpoint: '192.168.1.10'
+    node2:
+      ansible_host: 192.168.1.11
+      ansible_user: root
+      amneziawg_addresses:
+        - '10.10.0.2/24'
+      amneziawg_endpoint: '192.168.1.11'
+    node3:
+      ansible_host: 192.168.1.12
+      ansible_user: root
+      amneziawg_addresses:
+        - '10.10.0.3/24'
+      amneziawg_endpoint: '192.168.1.12'
+  vars:
+    amneziawg_interface: 'awg0'
+    amneziawg_port: 51820
 
-### host_vars/node1.yml
+    # Obfuscation parameters (must match on all peers)
+    amneziawg_jc: 4
+    amneziawg_jmin: 40
+    amneziawg_jmax: 70
+    amneziawg_s1: 0
+    amneziawg_s2: 0
 
-```yaml
-amneziawg_addresses:
-  - '10.10.0.1/24'
-amneziawg_endpoint: 'node1.example.com'
-```
-
-### host_vars/node2.yml
-
-```yaml
-amneziawg_addresses:
-  - '10.10.0.2/24'
-amneziawg_endpoint: 'node2.example.com'
-```
-
-### host_vars/node3.yml
-
-```yaml
-amneziawg_addresses:
-  - '10.10.0.3/24'
-amneziawg_endpoint: 'node3.example.com'
+    # Header obfuscation (optional, use large random integers)
+    amneziawg_h1: 1234567890
+    amneziawg_h2: 987654321
+    amneziawg_h3: 1111111111
+    amneziawg_h4: 2222222222
 ```
 
 ### Playbook
