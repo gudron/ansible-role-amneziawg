@@ -22,16 +22,16 @@ S1 = {{ amneziawg_s1 }}
 {% if amneziawg_s2 | default(0) | int > 0 %}
 S2 = {{ amneziawg_s2 }}
 {% endif %}
-{% if amneziawg_h1 | default(0) | int > 0 %}
+{% if amneziawg_h1 | default(0) | int > 0 or (amneziawg_h1 | default('') is string and '-' in amneziawg_h1 | default('')) %}
 H1 = {{ amneziawg_h1 }}
 {% endif %}
-{% if amneziawg_h2 | default(0) | int > 0 %}
+{% if amneziawg_h2 | default(0) | int > 0 or (amneziawg_h2 | default('') is string and '-' in amneziawg_h2 | default('')) %}
 H2 = {{ amneziawg_h2 }}
 {% endif %}
-{% if amneziawg_h3 | default(0) | int > 0 %}
+{% if amneziawg_h3 | default(0) | int > 0 or (amneziawg_h3 | default('') is string and '-' in amneziawg_h3 | default('')) %}
 H3 = {{ amneziawg_h3 }}
 {% endif %}
-{% if amneziawg_h4 | default(0) | int > 0 %}
+{% if amneziawg_h4 | default(0) | int > 0 or (amneziawg_h4 | default('') is string and '-' in amneziawg_h4 | default('')) %}
 H4 = {{ amneziawg_h4 }}
 {% endif %}
 

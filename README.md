@@ -208,16 +208,6 @@ The generated config file includes all AmneziaWG obfuscation parameters from you
 - `amneziawg-keys` - Key generation
 - `amneziawg-config` - Configuration only
 
-## Known Limitations
-
-### Custom H1-H4 Values
-
-The H1-H4 parameters (header obfuscation) should be left at their default values (0). Setting custom values causes `awg setconf` to fail with "Invalid argument" due to a bug in the current amneziawg-tools package.
-
-When H1-H4 are set to 0, the kernel module uses its default values (h1=1, h2=2, h3=3, h4=4).
-
-The Jc/Jmin/Jmax (junk packet) and S1/S2 (padding) parameters work correctly and provide effective DPI bypass functionality.
-
 ## License
 
 MIT
