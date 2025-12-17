@@ -1,0 +1,165 @@
+---
+# Generate AmneziaWG client configuration for desktop/mobile clients
+#
+# Usage:
+#   ansible-playbook -i inventory/test-vps.yml playbooks/generate-client-config.yml \
+#     -e client_name=my-laptop \
+#     -e client_address=10.10.0.100/24
+#
+# Optional variables:
+#   -e client_dns=1.1.1.1
+#   -e client_endpoint=vps1  (which server to connect to, default: first with endpoint)
+#   -e output_dir=./clients  (where to save config, default: ./clients)
+
+- name: Generate AmneziaWG client configuration
+  hosts: all
+  gather_facts: false
+  vars:
+    output_dir: './clients'
+  tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - client_name is defined
+          - client_address is defined
+        fail_msg: |
+          Required variables missing. Usage:
+            ansible-playbook -i inventory/test-vps.yml playbooks/generate-client-config.yml \
+              -e client_name=my-laptop \
+              -e client_address=10.10.0.100/24
+      run_once: true
+
+    - name: Generate client private key on remote server
+      ansible.builtin.command:
+        cmd: awg genkey
+      register: client_private_key_result
+      run_once: true
+      changed_when: false
+
+    - name: Derive client public key on remote server
+      ansible.builtin.shell: |
+        set -euo pipefail
+        echo '{{ client_private_key_result.stdout }}' | awg pubkey
+      args:
+        executable: /bin/bash
+      register: client_public_key_result
+      run_once: true
+      changed_when: false
+
+    - name: Set client key facts
+      ansible.builtin.set_fact:
+        client_private_key: '{{ client_private_key_result.stdout }}'
+        client_public_key: '{{ client_public_key_result.stdout }}'
+      run_once: true
+
+    - name: Get server public keys
+      ansible.builtin.shell: |
+        set -euo pipefail
+        awk -F' = ' '/^PrivateKey/{print $2}' /etc/amnezia/amneziawg/awg0.conf | awg pubkey
+      args:
+        executable: /bin/bash
+      register: server_public_key_result
+      changed_when: false
+
+    - name: Set server public key fact
+      ansible.builtin.set_fact:
+        server_public_key: '{{ server_public_key_result.stdout }}'
+
+    - name: Create output directory
+      ansible.builtin.file:
+        path: '{{ output_dir }}'
+        state: directory
+        mode: '0700'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Generate client configuration file
+      ansible.builtin.copy:
+        content: |
+          # AmneziaWG client configuration for {{ client_name }}
+          # Generated: {{ ansible_date_time.iso8601 | default(lookup('pipe', 'date -Iseconds')) }}
+
+          [Interface]
+          Address = {{ client_address }}
+          PrivateKey = {{ client_private_key }}
+          {% if client_dns is defined and client_dns %}
+          DNS = {{ client_dns }}
+          {% endif %}
+          {% if amneziawg_jc | default(0) | int > 0 %}
+          Jc = {{ amneziawg_jc }}
+          {% endif %}
+          {% if amneziawg_jmin | default(0) | int > 0 %}
+          Jmin = {{ amneziawg_jmin }}
+          {% endif %}
+          {% if amneziawg_jmax | default(0) | int > 0 %}
+          Jmax = {{ amneziawg_jmax }}
+          {% endif %}
+          {% if amneziawg_s1 | default(0) | int > 0 %}
+          S1 = {{ amneziawg_s1 }}
+          {% endif %}
+          {% if amneziawg_s2 | default(0) | int > 0 %}
+          S2 = {{ amneziawg_s2 }}
+          {% endif %}
+
+          {% for host in ansible_play_hosts %}
+          {% if hostvars[host].amneziawg_endpoint is defined and hostvars[host].amneziawg_endpoint %}
+          [Peer]
+          # {{ host }}
+          PublicKey = {{ hostvars[host].server_public_key }}
+          AllowedIPs = {{ hostvars[host].amneziawg_addresses[0] | regex_replace('/\\d+$', '/32') }}
+          Endpoint = {{ hostvars[host].amneziawg_endpoint }}:{{ hostvars[host].amneziawg_port | default(amneziawg_port | default(51820)) }}
+          PersistentKeepalive = 25
+
+          {% endif %}
+          {% endfor %}
+        dest: '{{ output_dir }}/{{ client_name }}.conf'
+        mode: '0600'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Add client as unmanaged peer to all servers
+      ansible.builtin.blockinfile:
+        path: /etc/amnezia/amneziawg/awg0.conf
+        block: |
+          [Peer]
+          # {{ client_name }} (client)
+          PublicKey = {{ client_public_key }}
+          AllowedIPs = {{ client_address | regex_replace('/\\d+$', '/32') }}
+        marker: '# {mark} ANSIBLE MANAGED - {{ client_name }}'
+        create: false
+      become: true
+      notify: Reload amneziawg
+
+    - name: Reload AmneziaWG configuration
+      ansible.builtin.shell: |
+        set -euo pipefail
+        awg syncconf awg0 <(awg-quick strip /etc/amnezia/amneziawg/awg0.conf)
+      args:
+        executable: /bin/bash
+      become: true
+      changed_when: true
+
+    - name: Display client configuration info
+      ansible.builtin.debug:
+        msg: |
+          ✅ Client configuration generated!
+
+          Config file: {{ output_dir }}/{{ client_name }}.conf
+          Client address: {{ client_address }}
+          Client public key: {{ client_public_key }}
+
+          The client has been added as a peer to all {{ ansible_play_hosts | length }} servers.
+
+          To use:
+          1. Import {{ output_dir }}/{{ client_name }}.conf into AmneziaWG client
+          2. Or use: awg-quick up {{ output_dir }}/{{ client_name }}.conf
+      run_once: true
+
+  handlers:
+    - name: Reload amneziawg
+      ansible.builtin.shell: |
+        set -euo pipefail
+        awg syncconf awg0 <(awg-quick strip /etc/amnezia/amneziawg/awg0.conf)
+      args:
+        executable: /bin/bash
+      become: true
