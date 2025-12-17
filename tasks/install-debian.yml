@@ -1,50 +1,127 @@
 ---
-# tasks/install-debian.yml - Install AmneziaWG on Debian/Ubuntu
+# tasks/install-debian.yml - Install AmneziaWG on Debian/Ubuntu via PPA
 
-- name: Install dependencies for package method
-  when: amneziawg_install_method == 'package'
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name:
+      - software-properties-common
+      - gpg
+      - dkms
+    state: present
+    update_cache: '{{ amneziawg_update_cache }}'
+  become: true
+
+- name: Check if kernel headers for current kernel are available
+  ansible.builtin.shell: |
+    set -euo pipefail
+    apt-get install --dry-run 'linux-headers-{{ ansible_facts["kernel"] }}' 2>&1 | grep -q 'is already the newest version\|will be installed'
+  args:
+    executable: /bin/bash
+  register: amneziawg__kernel_headers_available
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Install kernel headers for current kernel
+  when: amneziawg__kernel_headers_available.rc == 0
+  ansible.builtin.apt:
+    name: 'linux-headers-{{ ansible_facts["kernel"] }}'
+    state: present
+  become: true
+
+- name: Install generic kernel headers if current kernel headers unavailable
+  when: amneziawg__kernel_headers_available.rc != 0
   block:
-    - name: Install apt-transport-https and gpg
+    - name: Install linux-generic package for kernel and headers
       ansible.builtin.apt:
         name:
-          - apt-transport-https
-          - gpg
-        state: present
-        update_cache: '{{ amneziawg_update_cache }}'
-      become: true
-
-    - name: Add AmneziaWG PPA signing key
-      ansible.builtin.apt_key:
-        url: 'https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu/dists/{{ ansible_distribution_release }}/Release.gpg'
+          - linux-generic
+          - linux-headers-generic
         state: present
       become: true
-      ignore_errors: true
-      register: amneziawg__apt_key_result
 
-    - name: Add AmneziaWG PPA repository
-      ansible.builtin.apt_repository:
-        repo: 'ppa:amnezia/ppa'
-        state: present
-        filename: amneziawg
+    - name: Get latest installed kernel version
+      ansible.builtin.shell: |
+        set -euo pipefail
+        ls -1 /lib/modules/ | sort -V | tail -1
+      args:
+        executable: /bin/bash
+      register: amneziawg__latest_kernel
+      changed_when: false
+
+    - name: Check if reboot is required for new kernel
+      ansible.builtin.set_fact:
+        amneziawg__reboot_required: "{{ ansible_facts['kernel'] != amneziawg__latest_kernel.stdout }}"
+
+    - name: Fail if reboot required but auto_reboot is disabled
+      when:
+        - amneziawg__reboot_required | bool
+        - not amneziawg_auto_reboot | bool
+      ansible.builtin.fail:
+        msg: |
+          Kernel upgrade required: {{ ansible_facts['kernel'] }} -> {{ amneziawg__latest_kernel.stdout }}
+          A reboot is needed to load the new kernel before AmneziaWG DKMS module can be built.
+          Please reboot the system manually and re-run the playbook, or set amneziawg_auto_reboot: true
+
+    - name: Reboot to load new kernel if required
+      when:
+        - amneziawg__reboot_required | bool
+        - amneziawg_auto_reboot | bool
+      ansible.builtin.reboot:
+        msg: "Rebooting to load new kernel for AmneziaWG DKMS"
+        reboot_timeout: 300
       become: true
-      when: amneziawg__apt_key_result is succeeded
 
-    - name: Install AmneziaWG packages
-      ansible.builtin.apt:
-        name:
-          - amneziawg
-          - amneziawg-tools
-        state: '{{ amneziawg_state }}'
-        update_cache: true
-      become: true
-      when: amneziawg__apt_key_result is succeeded
+    - name: Wait for system to come back online
+      when:
+        - amneziawg__reboot_required | bool
+        - amneziawg_auto_reboot | bool
+      ansible.builtin.wait_for_connection:
+        delay: 10
+        timeout: 300
 
-    - name: Install AmneziaWG from source when PPA not available
-      when: amneziawg__apt_key_result is failed
-      ansible.builtin.include_tasks:
-        file: install-source.yml
+    - name: Gather facts after reboot
+      when:
+        - amneziawg__reboot_required | bool
+        - amneziawg_auto_reboot | bool
+      ansible.builtin.setup:
 
-- name: Install from source
-  when: amneziawg_install_method == 'source'
-  ansible.builtin.include_tasks:
-    file: install-source.yml
+- name: Add AmneziaWG PPA repository
+  ansible.builtin.apt_repository:
+    repo: 'ppa:amnezia/ppa'
+    state: present
+    filename: amneziawg
+  become: true
+
+- name: Install AmneziaWG packages
+  ansible.builtin.apt:
+    name:
+      - amneziawg
+      - amneziawg-tools
+    state: '{{ amneziawg_state }}'
+    update_cache: true
+  become: true
+  register: amneziawg__packages_installed
+
+- name: Check if AmneziaWG DKMS module is built for current kernel
+  ansible.builtin.stat:
+    path: '/lib/modules/{{ ansible_facts["kernel"] }}/updates/dkms/amneziawg.ko'
+  register: amneziawg__dkms_module
+
+- name: Build AmneziaWG DKMS module if not present
+  when: not amneziawg__dkms_module.stat.exists
+  ansible.builtin.shell: |
+    set -euo pipefail
+    dkms install amneziawg/1.0.0 -k {{ ansible_facts["kernel"] }} 2>&1 || \
+    dkms autoinstall -k {{ ansible_facts["kernel"] }} 2>&1
+  args:
+    executable: /bin/bash
+  become: true
+  register: amneziawg__dkms_build
+  changed_when: "'Installing' in amneziawg__dkms_build.stdout or 'Building' in amneziawg__dkms_build.stdout"
+
+- name: Ensure AmneziaWG kernel module is loaded
+  community.general.modprobe:
+    name: amneziawg
+    state: present
+  become: true

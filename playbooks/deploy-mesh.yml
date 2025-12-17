@@ -1,0 +1,8 @@
+---
+- name: Deploy AmneziaWG mesh network
+  hosts: all
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: akme.amneziawg

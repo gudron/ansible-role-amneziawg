@@ -2,13 +2,9 @@
 # defaults/main.yml - Default variables for amneziawg role
 
 # Installation settings
-amneziawg_install_method: 'package'  # 'package' or 'source'
 amneziawg_state: 'present'
 amneziawg_update_cache: true
-
-# Go settings (only used when amneziawg_install_method: 'source')
-amneziawg_go_version: '1.21.5'
-amneziawg_go_install_dir: '/usr/local'
+amneziawg_auto_reboot: false  # Set to true to allow automatic reboot when kernel upgrade is needed
 
 # Interface settings
 amneziawg_interface: 'awg0'

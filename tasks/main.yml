@@ -18,8 +18,7 @@
   vars:
     amneziawg__install_tasks: >-
       {{ 'install-debian.yml' if ansible_os_family == 'Debian' else
-         'install-redhat.yml' if ansible_os_family == 'RedHat' else
-         'install-source.yml' }}
+         'install-redhat.yml' }}
   tags:
     - amneziawg
     - amneziawg-install

@@ -1,8 +1,21 @@
 ---
 # handlers/main.yml - Handlers for amneziawg role
 
+- name: Check if interface exists
+  ansible.builtin.command:
+    cmd: 'ip link show {{ amneziawg_interface }}'
+  register: amneziawg__interface_check
+  failed_when: false
+  changed_when: false
+  listen:
+    - Reconfigure amneziawg
+  tags:
+    - amneziawg
+
 - name: Reconfigure amneziawg interface
-  when: not amneziawg_interface_restart
+  when:
+    - not amneziawg_interface_restart
+    - amneziawg__interface_check.rc == 0
   ansible.builtin.shell: |
     set -euo pipefail
     awg syncconf {{ amneziawg_interface }} <(awg-quick strip {{ amneziawg_remote_directory }}/{{ amneziawg_interface }}.conf)
@@ -14,7 +27,7 @@
     - amneziawg
 
 - name: Restart amneziawg interface
-  when: amneziawg_interface_restart
+  when: amneziawg_interface_restart or amneziawg__interface_check.rc != 0
   ansible.builtin.systemd:
     name: 'awg-quick@{{ amneziawg_interface }}'
     state: restarted

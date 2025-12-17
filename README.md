@@ -9,23 +9,28 @@ Deploy AmneziaWG mesh VPN networks with DPI obfuscation support.
 - **Mesh networking**: Automatically configures full-mesh or hub-spoke topologies
 - **Key management**: Auto-generates keys or uses provided ones; shares public keys via `hostvars`
 - **DPI obfuscation**: Full support for AmneziaWG parameters (Jc, Jmin, Jmax, S1, S2, H1-H4)
-- **Flexible installation**: Package repos (PPA/COPR) or source build
+- **Package installation**: Uses official PPA (Ubuntu/Debian) or COPR (RHEL/Fedora)
+- **Kernel module**: Installs native kernel module via DKMS for best performance
 - **Live reload**: Uses `awg syncconf` for zero-downtime config updates
-- **Multi-OS**: Ubuntu, Debian, RHEL, Rocky, Alma Linux
+- **Multi-OS**: Ubuntu, Debian, RHEL, Rocky, Alma Linux, Fedora
 
 ## Requirements
 
 - Ansible 2.14+
-- Target: Ubuntu 22.04+, Debian 11+, or RHEL/Rocky/Alma 8+
+- `community.general` collection (for `modprobe` and `copr` modules)
+- Target: Ubuntu 22.04+, Debian 11+, or RHEL/Rocky/Alma 8+, Fedora 38+
 
 ## Role Variables
 
 ### Installation
 
 ```yaml
-amneziawg_install_method: 'package'  # 'package' or 'source'
 amneziawg_state: 'present'
+amneziawg_update_cache: true
+amneziawg_auto_reboot: false  # Set to true to allow automatic reboot when kernel upgrade is needed
 ```
+
+> **Note:** On systems with outdated kernels where headers are unavailable, the role installs a newer kernel. By default (`amneziawg_auto_reboot: false`), the role will fail with instructions to reboot manually. Set `amneziawg_auto_reboot: true` to allow automatic reboot.
 
 ### Interface Settings
 
@@ -93,10 +98,7 @@ node3 ansible_host=192.168.1.12
 amneziawg_jc: 4
 amneziawg_jmin: 40
 amneziawg_jmax: 70
-amneziawg_h1: 12345678
-amneziawg_h2: 12345679
-amneziawg_h3: 12345680
-amneziawg_h4: 12345681
+# H1-H4 should be left at 0 (see Known Limitations below)
 ```
 
 ### host_vars/node1.yml
@@ -172,6 +174,16 @@ amneziawg_unmanaged_peers:
 - `amneziawg-install` - Installation only
 - `amneziawg-keys` - Key generation
 - `amneziawg-config` - Configuration only
+
+## Known Limitations
+
+### Custom H1-H4 Values
+
+The H1-H4 parameters (header obfuscation) should be left at their default values (0). Setting custom values causes `awg setconf` to fail with "Invalid argument" due to a bug in the current amneziawg-tools package.
+
+When H1-H4 are set to 0, the kernel module uses its default values (h1=1, h2=2, h3=3, h4=4).
+
+The Jc/Jmin/Jmax (junk packet) and S1/S2 (padding) parameters work correctly and provide effective DPI bypass functionality.
 
 ## License
 
