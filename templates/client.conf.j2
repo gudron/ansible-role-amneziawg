@@ -1,0 +1,49 @@
+# AmneziaWG client configuration for {{ client_name }}
+# Generated: {{ lookup('pipe', 'date -Iseconds') }}
+
+[Interface]
+Address = {{ client_address }}
+PrivateKey = {{ client_private_key }}
+{% if client_dns is defined and client_dns %}
+DNS = {{ client_dns }}
+{% endif %}
+{% if amneziawg_jc | default(0) | int > 0 %}
+Jc = {{ amneziawg_jc }}
+{% endif %}
+{% if amneziawg_jmin | default(0) | int > 0 %}
+Jmin = {{ amneziawg_jmin }}
+{% endif %}
+{% if amneziawg_jmax | default(0) | int > 0 %}
+Jmax = {{ amneziawg_jmax }}
+{% endif %}
+{% if amneziawg_s1 | default(0) | int > 0 %}
+S1 = {{ amneziawg_s1 }}
+{% endif %}
+{% if amneziawg_s2 | default(0) | int > 0 %}
+S2 = {{ amneziawg_s2 }}
+{% endif %}
+{% if amneziawg_h1 | default(0) | int > 0 %}
+H1 = {{ amneziawg_h1 }}
+{% endif %}
+{% if amneziawg_h2 | default(0) | int > 0 %}
+H2 = {{ amneziawg_h2 }}
+{% endif %}
+{% if amneziawg_h3 | default(0) | int > 0 %}
+H3 = {{ amneziawg_h3 }}
+{% endif %}
+{% if amneziawg_h4 | default(0) | int > 0 %}
+H4 = {{ amneziawg_h4 }}
+{% endif %}
+
+{% for host in ansible_play_hosts %}
+{% if hostvars[host].amneziawg_endpoint is defined and hostvars[host].amneziawg_endpoint %}
+{% set addr = hostvars[host].amneziawg_addresses[0].split('/')[0] %}
+[Peer]
+# {{ host }}
+PublicKey = {{ hostvars[host].server_public_key }}
+AllowedIPs = {{ addr }}/32
+Endpoint = {{ hostvars[host].amneziawg_endpoint }}:{{ hostvars[host].amneziawg_port | default(amneziawg_port | default(51820)) }}
+PersistentKeepalive = 25
+
+{% endif %}
+{% endfor %}

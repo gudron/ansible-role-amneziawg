@@ -168,6 +168,39 @@ amneziawg_unmanaged_peers:
     persistent_keepalive: '25'
 ```
 
+## Generating Client Configurations
+
+Use the included playbook to generate configuration files for desktop/mobile clients and automatically register them as peers on your servers:
+
+```bash
+ansible-playbook -i inventory/your-inventory.yml playbooks/generate-client-config.yml \
+  -e client_name=my-laptop \
+  -e client_address=10.10.0.100/24
+```
+
+### Required Variables
+
+| Variable | Description |
+|----------|-------------|
+| `client_name` | Name for the client (used in filename and peer comments) |
+| `client_address` | VPN address for the client (e.g., `10.10.0.100/24`) |
+
+### Optional Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `client_dns` | - | DNS server for the client |
+| `output_dir` | `./clients` | Local directory to save the config file |
+
+The playbook will:
+
+1. Generate a new key pair for the client
+2. Create a `.conf` file with the client configuration (saved locally)
+3. Add the client as a peer to all servers in the inventory
+4. Apply the configuration using `awg syncconf` (zero-downtime)
+
+The generated config file includes all AmneziaWG obfuscation parameters from your group_vars and can be imported directly into the [AmneziaWG client](https://github.com/amnezia-vpn/amneziawg-tools) or used with `awg-quick up`.
+
 ## Tags
 
 - `amneziawg` - All tasks
