@@ -12,16 +12,22 @@
     - amneziawg
     - amneziawg-config
 
-- name: Include OS-specific installation tasks
+- name: Include tasks depending on OS
   ansible.builtin.include_tasks:
-    file: '{{ amneziawg__install_tasks }}'
-  vars:
-    amneziawg__install_tasks: >-
-      {{ 'install-debian.yml' if ansible_os_family == 'Debian' else
-         'install-redhat.yml' }}
+    file: "{{ item }}"
+    apply:
+      tags:
+        - amneziawg
+        - amneziawg-config
+  with_first_found:
+    - "install-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "install-{{ ansible_distribution | lower }}-{{ ansible_distribution_version }}.yml"
+    - "install-{{ ansible_distribution | lower }}-{{ ansible_distribution_release }}.yml"
+    - "install-{{ ansible_distribution | lower }}.yml"
+    - "install-{{ ansible_os_family | lower }}.yml"
   tags:
     - amneziawg
-    - amneziawg-install
+    - amneziawg-config
 
 - name: Generate AmneziaWG keys
   ansible.builtin.include_tasks:

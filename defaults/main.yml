@@ -37,12 +37,13 @@ amneziawg_as_spoke: false  # When true, only connect to hubs (hosts with endpoin
 # amneziawg_postup: []
 # amneziawg_predown: []
 # amneziawg_postdown: []
+# AmneziaWG obfuscation parameters (define also in host_vars)
+# Junk packets (sent before handshake for obfuscation)
+amneziawg_jc: 0    # Junk packet count (0 = disabled) 0 - 10
+amneziawg_jmin: 0  # Minimum junk packet size - minimum 64
+amneziawg_jmax: 0  # Maximum junk packet size (must be < MTU and > jmin) - maximum 1024
 
 # AmneziaWG obfuscation parameters (define in group_vars for mesh-wide consistency)
-# Junk packets (sent before handshake for obfuscation)
-amneziawg_jc: 0    # Junk packet count (0 = disabled)
-amneziawg_jmin: 0  # Minimum junk packet size
-amneziawg_jmax: 0  # Maximum junk packet size (must be < MTU)
 
 # Message padding
 amneziawg_s1: 0  # Padding for handshake init message
