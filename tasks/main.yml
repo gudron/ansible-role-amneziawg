@@ -24,7 +24,6 @@
     - "install-{{ ansible_distribution | lower }}-{{ ansible_distribution_version }}.yml"
     - "install-{{ ansible_distribution | lower }}-{{ ansible_distribution_release }}.yml"
     - "install-{{ ansible_distribution | lower }}.yml"
-    - "install-{{ ansible_os_family | lower }}.yml"
   tags:
     - amneziawg
     - amneziawg-config

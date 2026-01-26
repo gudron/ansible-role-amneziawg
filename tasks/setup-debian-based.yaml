@@ -76,13 +76,6 @@
         - amneziawg_auto_reboot | bool
       ansible.builtin.setup:
 
-- name: Add AmneziaWG PPA repository
-  ansible.builtin.apt_repository:
-    repo: 'ppa:amnezia/ppa'
-    state: present
-    filename: amneziawg
-  become: true
-
 - name: Install AmneziaWG packages
   ansible.builtin.apt:
     name:
