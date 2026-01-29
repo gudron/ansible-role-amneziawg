@@ -98,12 +98,12 @@ PersistentKeepalive = 25
 # {{ peer_name }} (unmanaged)
 {% if peer.public_key_path is defined and peer.public_key_path %}
 PublicKey = {{ lookup('ansible.builtin.file', peer.public_key_path) }}
-{% else %}
+{% elif peer.public_key is defined and peer.public_key %}
 PublicKey = {{ peer.public_key }}
 {% endif %}
 {% if peer.preshared_key_path is defined and peer.preshared_key_path %}
 PresharedKey = {{ lookup('ansible.builtin.file', peer.preshared_key_path) }}
-{% else %}
+{% elif peer.preshared_key is defined and peer.preshared_key %}
 PresharedKey = {{ peer.preshared_key }}
 {% endif %}
 AllowedIPs = {{ peer.allowed_ips }}
