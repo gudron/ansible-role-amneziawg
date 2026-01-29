@@ -96,8 +96,14 @@ PersistentKeepalive = 25
 {% for peer_name, peer in amneziawg_unmanaged_peers.items() %}
 [Peer]
 # {{ peer_name }} (unmanaged)
+{% if peer.public_key_path is defined and peer.public_key_path %}
+PublicKey = {{ lookup('ansible.builtin.file', peer.public_key_path) }}
+{% else %}
 PublicKey = {{ peer.public_key }}
-{% if peer.preshared_key is defined and peer.preshared_key %}
+{% endif %}
+{% if peer.preshared_key_path is defined and peer.preshared_key_path %}
+PresharedKey = {{ lookup('ansible.builtin.file', peer.preshared_key_path) }}
+{% else %}
 PresharedKey = {{ peer.preshared_key }}
 {% endif %}
 AllowedIPs = {{ peer.allowed_ips }}

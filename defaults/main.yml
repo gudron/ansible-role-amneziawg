@@ -59,8 +59,9 @@ amneziawg_h4: 0  # Header for transport messages
 # amneziawg_unmanaged_peers:
 #   client.example.com:
 #     public_key: 'xxxx'
+#     public_key_path: '/path/to/public_key/file.pub'
 #     allowed_ips: '10.0.0.100/32'
 #     endpoint: 'client.example.com:51820'
 #     persistent_keepalive: '30'
-#     preshared_key: ''  # Optional
+#     preshared_key: '/path/to/preshared_key/file.shared'  # Optional
 amneziawg_unmanaged_peers: {}
