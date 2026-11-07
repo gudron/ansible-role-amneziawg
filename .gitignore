@@ -1,0 +1,22 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+.test
+.env
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+.idea
+.qwen
+.agents
+!.agents/skills/
+
+# gudron.app-masquerade: plausibility crypto staging on the controller (plan 009, Q2 option 2)
+roles/gudron.app-masquerade/.staging/
+
+__pycache__
