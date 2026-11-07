@@ -59,12 +59,16 @@
 - name: Install generic kernel headers if current kernel headers unavailable
   when: amneziawg__kernel_headers_available.rc != 0
   block:
-    - name: Install linux-generic package for kernel and headers
+    - name: Install generic kernel and headers packages
       ansible.builtin.apt:
         name:
-
+          - 'linux-image-{{ amneziawg__debian_kernel_arch }}'
+          - 'linux-headers-{{ amneziawg__debian_kernel_arch }}'
         state: present
       become: true
+      vars:
+        # Debian metapackage arch differs from ansible architecture fact on x86_64
+        amneziawg__debian_kernel_arch: "{{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else ansible_facts['architecture'] }}"
 
     - name: Get latest installed kernel version
       ansible.builtin.shell: |
@@ -131,7 +135,6 @@
   when: not amneziawg__dkms_module.stat.exists
   ansible.builtin.shell: |
     set -euo pipefail
-    dkms install amneziawg/1.0.0 -k {{ ansible_facts["kernel"] }} 2>&1 || \
     dkms autoinstall -k {{ ansible_facts["kernel"] }} 2>&1
   args:
     executable: /bin/bash

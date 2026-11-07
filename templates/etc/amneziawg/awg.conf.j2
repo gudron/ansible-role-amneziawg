@@ -44,6 +44,48 @@ H3 = {{ amneziawg_h3 }}
 {% if amneziawg_h4 | int > 0 or (amneziawg_h4 is string and '-' in amneziawg_h4) %}
 H4 = {{ amneziawg_h4 }}
 {% endif %}
+{% if amneziawg_header_protection_key %}
+HeaderProtectionKey = {{ amneziawg_header_protection_key }}
+{% endif %}
+{% if amneziawg_content_padding_addition %}
+ContentPaddingAddition = {{ amneziawg_content_padding_addition }}
+{% endif %}
+{% if amneziawg_rekey_after_time %}
+RekeyAfterTime = {{ amneziawg_rekey_after_time }}
+{% endif %}
+{% if amneziawg_rekey_timeout %}
+RekeyTimeout = {{ amneziawg_rekey_timeout }}
+{% endif %}
+{% if amneziawg_reject_after_time %}
+RejectAfterTime = {{ amneziawg_reject_after_time }}
+{% endif %}
+{% if amneziawg_keepalive_timeout %}
+KeepaliveTimeout = {{ amneziawg_keepalive_timeout }}
+{% endif %}
+{% if amneziawg_max_handshake_attempts %}
+MaxHandshakeAttempts = {{ amneziawg_max_handshake_attempts }}
+{% endif %}
+{% if amneziawg_i1 %}
+I1 = {{ amneziawg_i1 }}
+{% endif %}
+{% if amneziawg_i2 %}
+I2 = {{ amneziawg_i2 }}
+{% endif %}
+{% if amneziawg_i3 %}
+I3 = {{ amneziawg_i3 }}
+{% endif %}
+{% if amneziawg_i4 %}
+I4 = {{ amneziawg_i4 }}
+{% endif %}
+{% if amneziawg_i5 %}
+I5 = {{ amneziawg_i5 }}
+{% endif %}
+{% if amneziawg_random_trailers %}
+RandomTrailers = {{ amneziawg_random_trailers }}
+{% endif %}
+{% if amneziawg_disable_cookies %}
+DisableCookies = {{ amneziawg_disable_cookies }}
+{% endif %}
 {% if amneziawg_preup is defined and amneziawg_preup %}
 {% for cmd in amneziawg_preup %}
 PreUp = {{ cmd }}
@@ -89,6 +131,9 @@ PersistentKeepalive = {{ hostvars[host].amneziawg_persistent_keepalive }}
 {% elif not (hostvars[host].amneziawg_endpoint is defined and hostvars[host].amneziawg_endpoint) %}
 PersistentKeepalive = 25
 {% endif %}
+{% if hostvars[host].amneziawg_advanced_security is defined and hostvars[host].amneziawg_advanced_security %}
+AdvancedSecurity = {{ hostvars[host].amneziawg_advanced_security }}
+{% endif %}
 
 {% endif %}
 {% endif %}
@@ -112,6 +157,9 @@ Endpoint = {{ peer.endpoint }}
 {% endif %}
 {% if peer.persistent_keepalive is defined and peer.persistent_keepalive %}
 PersistentKeepalive = {{ peer.persistent_keepalive }}
+{% endif %}
+{% if peer.advanced_security is defined and peer.advanced_security %}
+AdvancedSecurity = {{ peer.advanced_security }}
 {% endif %}
 
 {% endfor %}

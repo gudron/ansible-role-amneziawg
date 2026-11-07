@@ -75,6 +75,21 @@
           - "'H1 = 12345678' in (config_content.content | b64decode)"
         fail_msg: 'Configuration file missing obfuscation parameters'
 
+    - name: Verify AmneziaWG v3 parameters in config
+      ansible.builtin.assert:
+        that:
+          - "'ContentPaddingAddition = 10-20' in (config_content.content | b64decode)"
+          - "'I1 = amnezia-v3-handshake' in (config_content.content | b64decode)"
+          - "'RandomTrailers = true' in (config_content.content | b64decode)"
+          - "'RekeyTimeout = 180' in (config_content.content | b64decode)"
+        fail_msg: 'Configuration file missing AmneziaWG v3 parameters'
+
+    - name: Verify AdvancedSecurity flag in peer sections
+      ansible.builtin.assert:
+        that:
+          - "'AdvancedSecurity = true' in (config_content.content | b64decode)"
+        fail_msg: 'Configuration file missing AdvancedSecurity flag in peer sections'
+
     - name: Verify peer configuration
       ansible.builtin.assert:
         that:

@@ -51,14 +51,17 @@ provisioner:
         amneziawg_addresses:
           - '10.10.0.1/24'
         amneziawg_endpoint: 'node1'
+        amneziawg_advanced_security: 'true'
       node2:
         amneziawg_addresses:
           - '10.10.0.2/24'
         amneziawg_endpoint: 'node2'
+        amneziawg_advanced_security: 'true'
       node3:
         amneziawg_addresses:
           - '10.10.0.3/24'
         amneziawg_endpoint: 'node3'
+        amneziawg_advanced_security: 'true'
     group_vars:
       all:
         amneziawg_install_method: 'source'
@@ -69,6 +72,11 @@ provisioner:
         amneziawg_h2: 12345679
         amneziawg_h3: 12345680
         amneziawg_h4: 12345681
+        # AmneziaWG v3 parameters
+        amneziawg_content_padding_addition: '10-20'
+        amneziawg_i1: 'amnezia-v3-handshake'
+        amneziawg_random_trailers: 'true'
+        amneziawg_rekey_timeout: '180'
 
 verifier:
   name: ansible

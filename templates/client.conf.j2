@@ -36,6 +36,48 @@ H3 = {{ amneziawg_h3 }}
 {% if amneziawg_h4 | default(0) | int > 0 or (amneziawg_h4 | default('') is string and '-' in amneziawg_h4 | default('')) %}
 H4 = {{ amneziawg_h4 }}
 {% endif %}
+{% if amneziawg_header_protection_key | default('') %}
+HeaderProtectionKey = {{ amneziawg_header_protection_key }}
+{% endif %}
+{% if amneziawg_content_padding_addition | default('') %}
+ContentPaddingAddition = {{ amneziawg_content_padding_addition }}
+{% endif %}
+{% if amneziawg_rekey_after_time | default('') %}
+RekeyAfterTime = {{ amneziawg_rekey_after_time }}
+{% endif %}
+{% if amneziawg_rekey_timeout | default('') %}
+RekeyTimeout = {{ amneziawg_rekey_timeout }}
+{% endif %}
+{% if amneziawg_reject_after_time | default('') %}
+RejectAfterTime = {{ amneziawg_reject_after_time }}
+{% endif %}
+{% if amneziawg_keepalive_timeout | default('') %}
+KeepaliveTimeout = {{ amneziawg_keepalive_timeout }}
+{% endif %}
+{% if amneziawg_max_handshake_attempts | default('') %}
+MaxHandshakeAttempts = {{ amneziawg_max_handshake_attempts }}
+{% endif %}
+{% if amneziawg_i1 | default('') %}
+I1 = {{ amneziawg_i1 }}
+{% endif %}
+{% if amneziawg_i2 | default('') %}
+I2 = {{ amneziawg_i2 }}
+{% endif %}
+{% if amneziawg_i3 | default('') %}
+I3 = {{ amneziawg_i3 }}
+{% endif %}
+{% if amneziawg_i4 | default('') %}
+I4 = {{ amneziawg_i4 }}
+{% endif %}
+{% if amneziawg_i5 | default('') %}
+I5 = {{ amneziawg_i5 }}
+{% endif %}
+{% if amneziawg_random_trailers | default('') %}
+RandomTrailers = {{ amneziawg_random_trailers }}
+{% endif %}
+{% if amneziawg_disable_cookies | default('') %}
+DisableCookies = {{ amneziawg_disable_cookies }}
+{% endif %}
 
 {% for host in ansible_play_hosts %}
 {% if hostvars[host].amneziawg_endpoint is defined and hostvars[host].amneziawg_endpoint %}
@@ -46,6 +88,9 @@ PublicKey = {{ hostvars[host].server_public_key }}
 AllowedIPs = {{ addr }}/32
 Endpoint = {{ hostvars[host].amneziawg_endpoint }}:{{ hostvars[host].amneziawg_port | default(amneziawg_port | default(51820)) }}
 PersistentKeepalive = 25
+{% if amneziawg_advanced_security | default('') %}
+AdvancedSecurity = {{ amneziawg_advanced_security }}
+{% endif %}
 
 {% endif %}
 {% endfor %}

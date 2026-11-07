@@ -9,6 +9,7 @@ Deploy AmneziaWG mesh VPN networks with DPI obfuscation support.
 - **Mesh networking**: Automatically configures full-mesh or hub-spoke topologies
 - **Key management**: Auto-generates keys or uses provided ones; shares public keys via `hostvars`
 - **DPI obfuscation**: Full support for AmneziaWG parameters (Jc, Jmin, Jmax, S1, S2, H1-H4)
+- **AmneziaWG v3**: Support for v3-only parameters (I1-I5, HeaderProtectionKey, ContentPaddingAddition, timing overrides, RandomTrailers, DisableCookies, per-peer AdvancedSecurity)
 - **Package installation**: Uses official PPA (Ubuntu/Debian) or COPR (RHEL/Fedora)
 - **Kernel module**: Installs native kernel module via DKMS for best performance
 - **Live reload**: Uses `awg syncconf` for zero-downtime config updates
@@ -72,6 +73,52 @@ amneziawg_h1: 0       # Handshake init header
 amneziawg_h2: 0       # Handshake response header
 amneziawg_h3: 0       # Cookie header
 amneziawg_h4: 0       # Transport header
+```
+
+### AmneziaWG v3 Parameters (optional)
+
+> **Note:** These parameters require `amneziawg-tools` >= v3 on all peers. The official PPA (`ppa:amnezia/ppa`) already ships v3 builds; the RHEL/COPR repository may lag behind — verify with `awg --version` before enabling. Configurations without these variables work with both v1/v2 and v3 tools.
+
+Set in `group_vars` for mesh-wide consistency:
+
+```yaml
+# Special handshake inserts (arbitrary strings, rendered verbatim)
+amneziawg_i1: ''
+amneziawg_i2: ''
+amneziawg_i3: ''
+amneziawg_i4: ''
+amneziawg_i5: ''
+
+# Header protection and padding
+amneziawg_header_protection_key: ''     # Base64, 32 bytes when decoded
+amneziawg_content_padding_addition: ''  # u16 or 'x-y' range
+
+# Timing overrides (u16 or 'x-y' range)
+amneziawg_rekey_after_time: ''
+amneziawg_rekey_timeout: ''
+amneziawg_reject_after_time: ''
+amneziawg_keepalive_timeout: ''
+amneziawg_max_handshake_attempts: ''
+
+# Behavior flags ('true' or 'false')
+amneziawg_random_trailers: ''
+amneziawg_disable_cookies: ''
+```
+
+Set per host in `host_vars` (renders as `AdvancedSecurity` in peer sections):
+
+```yaml
+amneziawg_advanced_security: 'true'  # Enable AWG obfuscation for this peer (v3 mixed mode)
+```
+
+Unmanaged peers accept the same flag:
+
+```yaml
+amneziawg_unmanaged_peers:
+  mobile-client:
+    public_key: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    allowed_ips: '10.10.0.100/32'
+    advanced_security: 'true'
 ```
 
 ### Topology

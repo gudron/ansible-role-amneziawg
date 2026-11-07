@@ -170,7 +170,6 @@
   when: not amneziawg__dkms_module.stat.exists
   ansible.builtin.shell: |
     set -euo pipefail
-    dkms install amneziawg/1.0.0 -k {{ ansible_facts["kernel"] }} 2>&1 || \
     dkms autoinstall -k {{ ansible_facts["kernel"] }} 2>&1
   args:
     executable: /bin/bash

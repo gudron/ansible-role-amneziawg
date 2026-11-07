@@ -12,6 +12,43 @@
     - amneziawg
     - amneziawg-config
 
+- name: Validate AmneziaWG v3 timing and padding variables
+  ansible.builtin.assert:
+    that:
+      - amneziawg_content_padding_addition | string == '' or amneziawg_content_padding_addition | string | regex_search('^\d+(-\d+)?$')
+      - amneziawg_keepalive_timeout | string == '' or amneziawg_keepalive_timeout | string | regex_search('^\d+(-\d+)?$')
+      - amneziawg_max_handshake_attempts | string == '' or amneziawg_max_handshake_attempts | string | regex_search('^\d+(-\d+)?$')
+      - amneziawg_rekey_after_time | string == '' or amneziawg_rekey_after_time | string | regex_search('^\d+(-\d+)?$')
+      - amneziawg_rekey_timeout | string == '' or amneziawg_rekey_timeout | string | regex_search('^\d+(-\d+)?$')
+      - amneziawg_reject_after_time | string == '' or amneziawg_reject_after_time | string | regex_search('^\d+(-\d+)?$')
+    fail_msg: 'AmneziaWG v3 timing/padding variables must be a u16 integer or an x-y range'
+    quiet: true
+  tags:
+    - amneziawg
+    - amneziawg-config
+
+- name: Validate AmneziaWG v3 boolean flags
+  ansible.builtin.assert:
+    that:
+      - amneziawg_advanced_security in ['', 'true', 'false', true, false]
+      - amneziawg_disable_cookies in ['', 'true', 'false', true, false]
+      - amneziawg_random_trailers in ['', 'true', 'false', true, false]
+    fail_msg: "AmneziaWG v3 boolean flags must be 'true' or 'false'"
+    quiet: true
+  tags:
+    - amneziawg
+    - amneziawg-config
+
+- name: Validate AmneziaWG v3 header protection key
+  ansible.builtin.assert:
+    that:
+      - amneziawg_header_protection_key == '' or amneziawg_header_protection_key | regex_search('^[A-Za-z0-9+/]{43}=$')
+    fail_msg: 'amneziawg_header_protection_key must be base64-encoded 32 bytes (44 chars ending with =)'
+    quiet: true
+  tags:
+    - amneziawg
+    - amneziawg-config
+
 - name: Include tasks depending on OS
   ansible.builtin.include_tasks:
     file: "{{ item }}"
